@@ -51,14 +51,37 @@ export const SwipeableProductCarousel: React.FC<SwipeableProductCarouselProps> =
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState<number>(0);
   
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStartX, setDragStartX] = useState(0);
-  const [itemsPerPage, setItemsPerPage] = useState(4);
   const [isAutoPlay, setIsAutoPlay] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [addedItemIds, setAddedItemIds] = useState<Record<string, boolean>>({});
+
+  // Dynamic responsive items per page calculation based on container width
+  const getItemsPerPage = (width: number) => {
+    if (width < 580) return 1;
+    if (width < 900) return 2;
+    if (width < 1200) return 3;
+    return 4;
+  };
+
+  const itemsPerPage = containerWidth > 0 ? getItemsPerPage(containerWidth) : 4;
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const updateWidth = () => {
+      if (el) setContainerWidth(el.clientWidth);
+    };
+
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   // Filter products by selected carousel category tab
   const categoriesList = [
@@ -74,24 +97,11 @@ export const SwipeableProductCarousel: React.FC<SwipeableProductCarouselProps> =
     ? products 
     : products.filter(p => p.category === activeCategory);
 
-  // Measure screen size to determine items visible per page
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 640) {
-        setItemsPerPage(1);
-      } else if (window.innerWidth < 1024) {
-        setItemsPerPage(2);
-      } else if (window.innerWidth < 1280) {
-        setItemsPerPage(3);
-      } else {
-        setItemsPerPage(4);
-      }
-    };
-
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const GAP = 16;
+  const cardWidth = containerWidth > 0 
+    ? (containerWidth - (itemsPerPage - 1) * GAP) / itemsPerPage 
+    : 280;
+  const stepOffset = cardWidth + GAP;
 
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage));
   const maxIndex = Math.max(0, filteredProducts.length - itemsPerPage);
@@ -114,20 +124,20 @@ export const SwipeableProductCarousel: React.FC<SwipeableProductCarouselProps> =
   };
 
   // Drag Gesture Handler
-  const handleDragEnd = (event: any, info: any) => {
+  const handleDragEnd = (_event: any, info: any) => {
     const offset = info.offset.x;
     const velocity = info.velocity.x;
 
-    // Determine swipe threshold
-    if (offset < -50 || velocity < -300) {
-      // Swiped Left -> Go Next
-      setCurrentIndex(prev => Math.min(maxIndex, prev + (Math.abs(offset) > 200 ? 2 : 1)));
-    } else if (offset > 50 || velocity > 300) {
-      // Swiped Right -> Go Prev
-      setCurrentIndex(prev => Math.max(0, prev - (Math.abs(offset) > 200 ? 2 : 1)));
+    let deltaSteps = 0;
+    if (Math.abs(offset) > 40 || Math.abs(velocity) > 200) {
+      if (offset < -40 || velocity < -200) {
+        deltaSteps = Math.max(1, Math.round(Math.abs(offset) / stepOffset));
+      } else if (offset > 40 || velocity > 200) {
+        deltaSteps = -Math.max(1, Math.round(Math.abs(offset) / stepOffset));
+      }
     }
-    
-    // Prevent accidental click during drag
+
+    setCurrentIndex(prev => Math.max(0, Math.min(maxIndex, prev + deltaSteps)));
     setTimeout(() => setIsDragging(false), 50);
   };
 
@@ -140,9 +150,6 @@ export const SwipeableProductCarousel: React.FC<SwipeableProductCarouselProps> =
       setAddedItemIds(prev => ({ ...prev, [product.id]: false }));
     }, 1500);
   };
-
-  // Card Width calculation percentage based on itemsPerPage
-  const cardWidthPercent = 100 / itemsPerPage;
 
   return (
     <section className="space-y-4 my-8 font-sans">
@@ -251,7 +258,7 @@ export const SwipeableProductCarousel: React.FC<SwipeableProductCarouselProps> =
       {/* Swipeable Carousel Viewport Stage */}
       <div 
         ref={containerRef} 
-        className="relative overflow-hidden rounded-3xl p-1 -m-1 select-none"
+        className="w-full max-w-full relative overflow-hidden rounded-3xl select-none"
       >
         {/* Interactive Gesture Hint Pill for touch & mouse */}
         <div className="flex items-center justify-between px-2 mb-2">
@@ -274,36 +281,39 @@ export const SwipeableProductCarousel: React.FC<SwipeableProductCarouselProps> =
         </div>
 
         {/* Motion Track with Drag gestures */}
-        <div className="overflow-hidden cursor-grab active:cursor-grabbing">
+        <div className="w-full max-w-full overflow-hidden cursor-grab active:cursor-grabbing">
           <motion.div
             ref={trackRef}
             drag="x"
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.18}
+            dragConstraints={{ 
+              left: -maxIndex * stepOffset, 
+              right: 0 
+            }}
+            dragElastic={0.15}
             onDragStart={() => setIsDragging(true)}
             onDragEnd={handleDragEnd}
             animate={{
-              x: `-${currentIndex * (100 / itemsPerPage)}%`
+              x: -(currentIndex * stepOffset)
             }}
             transition={{
               type: 'spring',
-              stiffness: 260,
-              damping: 28,
+              stiffness: 280,
+              damping: 30,
               mass: 0.8
             }}
-            className="flex gap-4 touch-pan-y"
+            className="flex touch-pan-y"
+            style={{ gap: `${GAP}px` }}
           >
-            {filteredProducts.map((product, idx) => {
+            {filteredProducts.map((product) => {
               const inWish = wishlist.some(p => p.id === product.id);
               const inComp = comparison.some(p => p.id === product.id);
               const isAdded = !!addedItemIds[product.id];
-              const isCenter = idx >= currentIndex && idx < currentIndex + itemsPerPage;
 
               return (
                 <motion.div
                   key={product.id}
                   style={{ 
-                    width: `calc(${cardWidthPercent}% - ${(16 * (itemsPerPage - 1)) / itemsPerPage}px)`,
+                    width: `${cardWidth}px`,
                     flexShrink: 0 
                   }}
                   whileHover={{ y: -6 }}

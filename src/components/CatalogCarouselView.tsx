@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { 
   ChevronLeft, 
@@ -23,6 +23,8 @@ interface CatalogCarouselViewProps {
   onSelectProduct: (product: Product) => void;
 }
 
+const GAP = 16; // 16px (gap-4)
+
 export const CatalogCarouselView: React.FC<CatalogCarouselViewProps> = ({
   products,
   wishlist,
@@ -32,26 +34,45 @@ export const CatalogCarouselView: React.FC<CatalogCarouselViewProps> = ({
   onToggleComparison,
   onSelectProduct
 }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const [itemsPerPage, setItemsPerPage] = useState(3);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState<number>(0);
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
   const [addedItemIds, setAddedItemIds] = useState<Record<string, boolean>>({});
 
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 640) setItemsPerPage(1);
-      else if (window.innerWidth < 1024) setItemsPerPage(2);
-      else setItemsPerPage(3);
-    };
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+  // Dynamic responsive items per page calculation based on the actual container width
+  const getItemsPerPage = useCallback((width: number) => {
+    if (width < 580) return 1;
+    if (width < 960) return 2;
+    return 3;
   }, []);
 
-  // Reset index if products change
+  const itemsPerPage = containerWidth > 0 ? getItemsPerPage(containerWidth) : 3;
+
+  // Track exact container width using ResizeObserver to ensure 100% responsive accuracy
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const updateWidth = () => {
+      if (el) {
+        setContainerWidth(el.clientWidth);
+      }
+    };
+
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(el);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  // Reset index if products change or itemsPerPage changes
   useEffect(() => {
     setCurrentIndex(0);
-  }, [products.length]);
+  }, [products.length, itemsPerPage]);
 
   const maxIndex = Math.max(0, products.length - itemsPerPage);
   const totalPages = Math.max(1, Math.ceil(products.length / itemsPerPage));
@@ -64,15 +85,26 @@ export const CatalogCarouselView: React.FC<CatalogCarouselViewProps> = ({
     setCurrentIndex(prev => Math.min(maxIndex, prev + 1));
   };
 
-  const handleDragEnd = (e: any, info: any) => {
+  // Exact card width and step offset in pixels
+  const cardWidth = containerWidth > 0 
+    ? (containerWidth - (itemsPerPage - 1) * GAP) / itemsPerPage 
+    : 280;
+  const stepOffset = cardWidth + GAP;
+
+  const handleDragEnd = (_e: any, info: any) => {
     const offset = info.offset.x;
     const velocity = info.velocity.x;
 
-    if (offset < -40 || velocity < -200) {
-      setCurrentIndex(prev => Math.min(maxIndex, prev + (Math.abs(offset) > 180 ? 2 : 1)));
-    } else if (offset > 40 || velocity > 200) {
-      setCurrentIndex(prev => Math.max(0, prev - (Math.abs(offset) > 180 ? 2 : 1)));
+    let deltaSteps = 0;
+    if (Math.abs(offset) > 40 || Math.abs(velocity) > 200) {
+      if (offset < -40 || velocity < -200) {
+        deltaSteps = Math.max(1, Math.round(Math.abs(offset) / stepOffset));
+      } else if (offset > 40 || velocity > 200) {
+        deltaSteps = -Math.max(1, Math.round(Math.abs(offset) / stepOffset));
+      }
     }
+
+    setCurrentIndex(prev => Math.max(0, Math.min(maxIndex, prev + deltaSteps)));
     setTimeout(() => setIsDragging(false), 50);
   };
 
@@ -86,23 +118,23 @@ export const CatalogCarouselView: React.FC<CatalogCarouselViewProps> = ({
     }, 1500);
   };
 
-  const cardWidthPercent = 100 / itemsPerPage;
-
   if (products.length === 0) return null;
 
   return (
-    <div className="space-y-4 select-none">
+    <div className="w-full max-w-full space-y-4 select-none overflow-hidden font-sans">
       {/* Top Carousel Navigation Bar */}
-      <div className="bg-slate-900 text-white px-5 py-3.5 rounded-2xl flex items-center justify-between shadow-sm">
+      <div className="bg-slate-900 text-white px-4 sm:px-5 py-3.5 rounded-2xl flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-2 text-xs">
-          <MoveHorizontal className="w-4 h-4 text-orange-400 animate-pulse" />
+          <MoveHorizontal className="w-4 h-4 text-orange-400 animate-pulse shrink-0" />
           <span className="font-bold">Ekranda sürüşdürərək vərəqləyin</span>
-          <span className="hidden sm:inline text-slate-400">({currentIndex + 1} - {Math.min(products.length, currentIndex + itemsPerPage)} / {products.length})</span>
+          <span className="hidden sm:inline text-slate-400">
+            ({currentIndex + 1} - {Math.min(products.length, currentIndex + itemsPerPage)} / {products.length})
+          </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Progress bar */}
-          <div className="w-24 sm:w-36 h-1.5 bg-slate-800 rounded-full overflow-hidden mr-2 hidden sm:block">
+          <div className="w-20 sm:w-32 h-1.5 bg-slate-800 rounded-full overflow-hidden mr-1 hidden sm:block">
             <div 
               className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all duration-300"
               style={{ width: `${maxIndex > 0 ? ((currentIndex) / maxIndex) * 100 : 100}%` }}
@@ -143,23 +175,30 @@ export const CatalogCarouselView: React.FC<CatalogCarouselViewProps> = ({
         </div>
       </div>
 
-      {/* Swipe Drag Stage */}
-      <div className="overflow-hidden rounded-3xl p-1 -m-1 cursor-grab active:cursor-grabbing">
+      {/* Carousel Track Container */}
+      <div 
+        ref={containerRef}
+        className="w-full max-w-full overflow-hidden rounded-3xl cursor-grab active:cursor-grabbing relative"
+      >
         <motion.div
           drag="x"
-          dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={0.18}
+          dragConstraints={{ 
+            left: -maxIndex * stepOffset, 
+            right: 0 
+          }}
+          dragElastic={0.15}
           onDragStart={() => setIsDragging(true)}
           onDragEnd={handleDragEnd}
           animate={{
-            x: `-${currentIndex * (100 / itemsPerPage)}%`
+            x: -(currentIndex * stepOffset)
           }}
           transition={{
             type: 'spring',
-            stiffness: 260,
-            damping: 28
+            stiffness: 280,
+            damping: 30
           }}
-          className="flex gap-4 touch-pan-y"
+          className="flex touch-pan-y"
+          style={{ gap: `${GAP}px` }}
         >
           {products.map((product) => {
             const inWish = wishlist.some(p => p.id === product.id);
@@ -170,14 +209,14 @@ export const CatalogCarouselView: React.FC<CatalogCarouselViewProps> = ({
               <motion.div
                 key={product.id}
                 style={{ 
-                  width: `calc(${cardWidthPercent}% - ${(16 * (itemsPerPage - 1)) / itemsPerPage}px)`,
+                  width: `${cardWidth}px`,
                   flexShrink: 0 
                 }}
-                whileHover={{ y: -5 }}
+                whileHover={{ y: -4 }}
                 onClick={() => {
                   if (!isDragging) onSelectProduct(product);
                 }}
-                className="group bg-white rounded-3xl border border-slate-200 hover:border-orange-400 hover:shadow-2xl hover:shadow-orange-500/10 transition-all flex flex-col justify-between overflow-hidden cursor-pointer relative font-sans"
+                className="group bg-white rounded-3xl border border-slate-200 hover:border-orange-400 hover:shadow-xl hover:shadow-orange-500/10 transition-all flex flex-col justify-between overflow-hidden cursor-pointer relative font-sans"
               >
                 {/* Product Image */}
                 <div className="relative pt-[70%] bg-slate-100 overflow-hidden">

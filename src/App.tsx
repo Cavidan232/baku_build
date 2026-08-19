@@ -298,7 +298,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100/80 text-slate-900 flex flex-col font-sans selection:bg-orange-500 selection:text-white">
+    <div className="min-h-screen bg-slate-100/80 text-slate-900 flex flex-col font-sans selection:bg-orange-500 selection:text-white w-full overflow-x-hidden relative">
       {/* Top Header with Navigation, Live Search & User Controls */}
       <Header
         currentUser={currentUser}
@@ -318,7 +318,7 @@ export default function App() {
       />
 
       {/* Main Container with extra bottom padding on mobile for MobileBottomNav */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-8 space-y-8">
+      <main className="flex-1 max-w-7xl w-full min-w-0 mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-8 space-y-8 overflow-hidden">
         {/* Hero Slider & Promotional Section */}
         {filterState.category === 'all' && !filterState.searchQuery && (
           <BannerHero
@@ -542,9 +542,9 @@ export default function App() {
           )}
 
           {/* Main Layout: Sidebar + Product Grid */}
-          <div className="flex flex-col lg:flex-row gap-6 items-start">
+          <div className="flex flex-col lg:flex-row gap-6 items-start w-full min-w-0">
             {/* Desktop Filter Sidebar */}
-            <div className="hidden lg:block shrink-0 sticky top-24">
+            <div className="hidden lg:block w-64 shrink-0 sticky top-24">
               <FilterSidebar
                 categories={categories}
                 brands={BRANDS_LIST}
@@ -605,7 +605,7 @@ export default function App() {
             </AnimatePresence>
 
             {/* Product Grid Area */}
-            <div className="flex-1 w-full space-y-6">
+            <div className="flex-1 w-full min-w-0 space-y-6 overflow-hidden">
               {filteredProducts.length === 0 ? (
                 <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center space-y-3 shadow-xs">
                   <PackageSearch className="w-16 h-16 text-slate-300 mx-auto" />
