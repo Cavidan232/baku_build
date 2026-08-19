@@ -408,11 +408,11 @@ export const SwipeableProductCarousel: React.FC<SwipeableProductCarouselProps> =
                       </h3>
 
                       {/* Technical Specs pills */}
-                      {product.specs && (
+                      {product.specifications && Array.isArray(product.specifications) && (
                         <div className="mt-2 flex flex-wrap gap-1">
-                          {Object.entries(product.specs).slice(0, 2).map(([key, val]) => (
-                            <span key={key} className="px-2 py-0.5 bg-slate-100 rounded-md text-[10px] text-slate-600 font-medium truncate max-w-[140px]">
-                              {key}: {val}
+                          {product.specifications.slice(0, 2).map((spec, sIdx) => (
+                            <span key={sIdx} className="px-2 py-0.5 bg-slate-100 rounded-md text-[10px] text-slate-600 font-medium truncate max-w-[140px]">
+                              {spec.key}: {spec.value}
                             </span>
                           ))}
                         </div>

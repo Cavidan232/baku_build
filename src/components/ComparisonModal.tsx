@@ -171,15 +171,15 @@ export const ComparisonModal: React.FC<ComparisonModalProps> = ({
                         <td className="p-3.5 font-bold text-slate-600 bg-slate-50/70">Əsas Xüsusiyyətlər</td>
                         {comparisonProducts.map((p) => (
                           <td key={p.id} className="p-3.5 text-slate-700 text-[11px] border-l border-slate-200 align-top space-y-1">
-                            {p.specifications ? (
-                              Object.entries(p.specifications).map(([k, v]) => (
-                                <div key={k}>
-                                  <span className="font-semibold text-slate-500">{k}: </span>
-                                  <span className="font-bold text-slate-800">{v}</span>
+                            {p.specifications && Array.isArray(p.specifications) ? (
+                              p.specifications.map((spec, sIdx) => (
+                                <div key={sIdx} className="text-slate-800">
+                                  <span className="font-semibold text-slate-500">{spec.key}: </span>
+                                  <span className="font-bold">{spec.value}</span>
                                 </div>
                               ))
                             ) : (
-                              'Standart spesifikasiya'
+                              <span className="text-slate-400">Standart spesifikasiya</span>
                             )}
                           </td>
                         ))}
