@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Filter, RotateCcw, Check, ChevronRight } from 'lucide-react';
+import { Filter, RotateCcw, Check, ChevronRight, Calculator, Sparkles } from 'lucide-react';
 import { Category, FilterState } from '../types';
 import { formatPrice } from '../utils/helpers';
 
@@ -10,6 +10,7 @@ interface FilterSidebarProps {
   filterState: FilterState;
   onUpdateFilter: (updates: Partial<FilterState>) => void;
   onResetFilters: () => void;
+  onOpenCalculator?: () => void;
 }
 
 export const FilterSidebar: React.FC<FilterSidebarProps> = ({
@@ -17,7 +18,8 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
   brands,
   filterState,
   onUpdateFilter,
-  onResetFilters
+  onResetFilters,
+  onOpenCalculator
 }) => {
   const currentCategoryObj = categories.find(c => c.id === filterState.category);
 
@@ -211,6 +213,28 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
           />
         </label>
       </div>
+
+      {/* Quick Calculator Shortcut Card */}
+      {onOpenCalculator && (
+        <div className="border-t border-slate-100 pt-4">
+          <div 
+            onClick={onOpenCalculator}
+            className="p-3.5 bg-gradient-to-br from-orange-50 to-amber-50/60 rounded-xl border border-orange-200/80 hover:border-orange-400 transition-all cursor-pointer group shadow-xs"
+          >
+            <div className="flex items-center gap-2 text-orange-600 font-bold mb-1">
+              <Calculator className="w-4 h-4 group-hover:scale-110 transition-transform" />
+              <span>Material Kalkulyatoru</span>
+            </div>
+            <p className="text-[11px] text-slate-600 leading-snug">
+              Sahəyə uyğun sement, kərpic, suvaq və kafel sayını dərhal hesabla.
+            </p>
+            <div className="mt-2 text-[10px] font-extrabold text-orange-700 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+              <span>Hesablayıcını Aç</span>
+              <ChevronRight className="w-3 h-3" />
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 };

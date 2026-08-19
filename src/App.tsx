@@ -59,6 +59,8 @@ import { DealsCarousel } from './components/DealsCarousel';
 import { ProjectsCarousel } from './components/ProjectsCarousel';
 import { SwipeableProductCarousel } from './components/SwipeableProductCarousel';
 import { CatalogCarouselView } from './components/CatalogCarouselView';
+import { MobileBottomNav } from './components/MobileBottomNav';
+import { DesktopCalculatorFab } from './components/DesktopCalculatorFab';
 import { Footer } from './components/Footer';
 
 export default function App() {
@@ -315,8 +317,8 @@ export default function App() {
         onSelectCategory={(categoryId) => handleUpdateFilter({ category: categoryId, subcategory: '' })}
       />
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+      {/* Main Container with extra bottom padding on mobile for MobileBottomNav */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-8 space-y-8">
         {/* Hero Slider & Promotional Section */}
         {filterState.category === 'all' && !filterState.searchQuery && (
           <BannerHero
@@ -549,6 +551,7 @@ export default function App() {
                 filterState={filterState}
                 onUpdateFilter={handleUpdateFilter}
                 onResetFilters={handleResetFilters}
+                onOpenCalculator={() => setIsCalculatorOpen(true)}
               />
             </div>
 
@@ -584,6 +587,10 @@ export default function App() {
                         handleUpdateFilter(updates);
                       }}
                       onResetFilters={handleResetFilters}
+                      onOpenCalculator={() => {
+                        setMobileFilterOpen(false);
+                        setIsCalculatorOpen(true);
+                      }}
                     />
                     <motion.button
                       whileTap={{ scale: 0.96 }}
@@ -659,27 +666,32 @@ export default function App() {
         )}
       </main>
 
-      {/* Floating Material Calculator Action Button */}
-      <motion.button
-        whileHover={{ scale: 1.06, y: -2 }}
-        whileTap={{ scale: 0.94 }}
-        onClick={() => setIsCalculatorOpen(true)}
-        className="fixed bottom-6 right-6 z-40 px-5 py-3.5 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-500 hover:to-orange-600 text-white font-black text-xs sm:text-sm rounded-2xl shadow-xl shadow-orange-600/30 flex items-center gap-2.5 cursor-pointer border border-orange-400/40 transition-all"
-        title="Tikinti materialı kalkulyatorunu aç"
-      >
-        <Calculator className="w-5 h-5 text-orange-200" />
-        <span className="hidden sm:inline">Material Hesabla (Kalkulyator)</span>
-        <span className="sm:hidden">Kalkulyator</span>
-      </motion.button>
+      {/* Desktop Floating Material Calculator Action Widget (Non-intrusive, hidden on mobile) */}
+      <DesktopCalculatorFab onOpenCalculator={() => setIsCalculatorOpen(true)} />
 
-      {/* Floating Toast Notification */}
+      {/* Mobile Ergonomic Bottom Navigation Bar with Quick Calculator Access */}
+      <MobileBottomNav
+        cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)}
+        wishlistCount={wishlist.length}
+        comparisonCount={comparison.length}
+        onOpenCalculator={() => setIsCalculatorOpen(true)}
+        onOpenCart={() => setIsCartOpen(true)}
+        onOpenWishlist={() => setIsWishlistOpen(true)}
+        onOpenComparison={() => setIsComparisonOpen(true)}
+        onScrollToCatalog={() => {
+          const catEl = document.getElementById('catalog-section');
+          if (catEl) catEl.scrollIntoView({ behavior: 'smooth' });
+        }}
+      />
+
+      {/* Floating Toast Notification (Positioned cleanly above mobile bar) */}
       <AnimatePresence>
         {toastMessage && (
           <motion.div 
             initial={{ opacity: 0, y: 20, x: '-50%' }}
             animate={{ opacity: 1, y: 0, x: '-50%' }}
             exit={{ opacity: 0, y: 20, x: '-50%' }}
-            className="fixed bottom-6 left-1/2 z-50 px-5 py-3 bg-slate-900 text-white text-xs font-bold rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-2.5"
+            className="fixed bottom-20 md:bottom-6 left-1/2 z-50 px-5 py-3 bg-slate-900 text-white text-xs font-bold rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-2.5"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             <span>{toastMessage}</span>
