@@ -1,0 +1,6 @@
+{
+  "name": "İnşaatMarket - Tikinti Materialları",
+  "description": "Zavod brendləri karuseli, günün təcili endirimlər slayderi, layihə smetası, rəqəmsal material kalkulyatoru, B2B e-qaimə və kranla operativ çatdırılma platforması.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
